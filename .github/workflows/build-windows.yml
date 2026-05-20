@@ -1,0 +1,42 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Build project
+        run: mvn clean package dependency:copy-dependencies
+
+      - name: Create app image
+        run: |
+          jpackage `
+            --type app-image `
+            --name TimesheetEntry `
+            --input target `
+            --main-jar TimesheetEntry-0.0.1-SNAPSHOT.jar `
+            --main-class com.jesse.timesheet.Launcher `
+            --dest installer
+
+      - name: Zip app folder
+        run: Compress-Archive -Path installer/TimesheetEntry -DestinationPath TimesheetEntry-Windows.zip
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TimesheetEntry-Windows
+          path: TimesheetEntry-Windows.zip
